@@ -3,13 +3,27 @@ import time
 from arango import ArangoClient
 
 print("Uruchamianie bazy ArangoDB z docker-compose...")
-subprocess.run(["docker-compose", "up", "-d"], check=True)
+subprocess.run(["docker", "compose", "up", "-d"], check=True)
 
-print("Czekam 5 sekund na start serwera...")
-time.sleep(5)
-
+print("Czekam na pełne uruchomienie serwera ArangoDB", end="")
 client = ArangoClient(hosts='http://localhost:8529')
-sys_db = client.db('_system', username='root', password='root')
+sys_db = None
+
+# Pętla czekająca na gotowość bazy danych (maksymalnie 30 prób)
+for i in range(30):
+    try:
+        sys_db = client.db('_system', username='root', password='root')
+        # Próba wykonania prostej operacji, aby upewnić się, że baza odpowiada
+        sys_db.has_database("streaming_db")
+        print("\n Połączono pomyślnie!")
+        break
+    except Exception:
+        print(".", end="", flush=True)
+        time.sleep(1)
+
+if sys_db is None:
+    print("\n[BŁĄD] Nie udało się połączyć z ArangoDB w ciągu 30 sekund.")
+    exit(1)
 
 # Reset bazy
 if sys_db.has_database("streaming_db"):
@@ -30,4 +44,4 @@ watched = streaming_graph.create_edge_definition(
     to_vertex_collections=["movies"]
 )
 
-print("Infrastruktura gotowa! Czas na magię AQL w przeglądarce.")
+print("Infrastruktura gotowa => http://localhost:8529")
