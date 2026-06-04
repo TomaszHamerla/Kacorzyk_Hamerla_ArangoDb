@@ -9,11 +9,9 @@ print("Czekam na pełne uruchomienie serwera ArangoDB", end="")
 client = ArangoClient(hosts='http://localhost:8529')
 sys_db = None
 
-# Pętla czekająca na gotowość bazy danych (maksymalnie 30 prób)
 for i in range(30):
     try:
         sys_db = client.db('_system', username='root', password='root')
-        # Próba wykonania prostej operacji, aby upewnić się, że baza odpowiada
         sys_db.has_database("streaming_db")
         print("\n Połączono pomyślnie!")
         break
