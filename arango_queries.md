@@ -125,3 +125,36 @@ FOR w IN watched
     rating: w.rating
   }
 ```
+
+### 5.4 Graf: Użytkownicy, którzy obejrzeli ten sam film co użytkownik u1 (Współwidzowie)
+Zapytanie to szuka wierzchołków znajdujących się dokładnie 2 kroki od `u1` w dowolnym kierunku (ANY), upewniając się, że znaleziony węzeł należy do kolekcji `users`. Ponieważ ścieżka wygląda tak: `user -> movie <- user`, używamy `ANY`.
+```aql
+FOR v, e, p IN 2..2 ANY "users/u1" GRAPH "StreamingGraph"
+  FILTER IS_SAME_COLLECTION("users", v)
+  RETURN DISTINCT {
+    userName: v.name,
+    userSurname: v.surname
+  }
+```
+
+### 5.5 Graf: Rekomendacja filmów dla użytkownika u2
+Pobiera filmy obejrzane przez użytkowników o podobnym guście (takich, którzy widzieli te same filmy co `u2`), z pominięciem filmów, które `u2` już obejrzał.
+```aql
+FOR v, e, p IN 3..3 ANY "users/u2" GRAPH "StreamingGraph"
+  FILTER IS_SAME_COLLECTION("movies", v)
+  // Ignorujemy filmy już obejrzane przez u2
+  FILTER v._id NOT IN (
+    FOR v2 IN 1..1 OUTBOUND "users/u2" GRAPH "StreamingGraph" RETURN v2._id
+  )
+  RETURN DISTINCT {
+    recommendedMovie: v.title,
+    genre: v.genre
+  }
+```
+
+### 5.6 Graf: Najkrótsza ścieżka (Shortest Path) pomiędzy dwoma użytkownikami
+Zwraca najkrótszą ścieżkę powiązań między dwoma użytkownikami w grafie (np. przez wspólne filmy), ignorując kierunek krawędzi (ANY).
+```aql
+FOR v IN ANY SHORTEST_PATH "users/u1" TO "users/u2" GRAPH "StreamingGraph"
+  RETURN v._id
+```
